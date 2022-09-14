@@ -1,0 +1,673 @@
+.data 
+d: .space 5
+m: .asciiz "0033614625035"
+mleap: .asciiz "0623614625035"
+wday: .asciiz "Sun  ", "Mon  ", "Tues ", "Wed  ", "Thurs", "Fri  ", "Sat  "
+day: .word 1
+month: .word 1
+year: .word 1900
+.align 2
+TIME: .asciiz "01/01/1900"
+.align 2
+TIME1: .asciiz "--/--/----"
+.align 2
+TIME2: .asciiz "--/--/----"
+.align 2
+TIME_convert: .asciiz "                    "
+input_day: .asciiz "\nNhap ngay DAY: "
+input_mon: .asciiz "\nNhap thang MONTH: "
+input_year: .asciiz "\nNhap nam YEAR: "
+error_input: .asciiz "\nInput khong hop le, Vui long nhap dung dinh dang dd/mm/yyyy,(dd: 1~31, mm: 1~12, yyyy: 1900~9999)\n" 
+menu: .asciiz "\n---------------------Ban hay chon 1 trong cac thao tac duoi day--------------------\n1. Xuat chuoi TIME theo dinh dang DD MM YYYY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau\n\tA. MM DD YYYY\n\tB. Month DD YYYY\n\tC. DD Month YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan khong\n5. Cho biet khoang thoi gian giua chuoi TIME 1 va TIME 2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi time\n"
+option: .asciiz "\n---------------------------\nLua chon: "
+error_option: .asciiz  "\nLua chon khong hop le, nhap lai lua chon (1~6): "
+error_option2: .asciiz  "\nLua chon dinh dang khong hop le, nhap lai lua chon (A/B/C): "
+option2_: .asciiz "\n---------------------------\nLua chon dinh dang(A/B/C): "
+newline: .asciiz "\n"
+leap: .asciiz  "\nNam vua nhap la nam nhuan.\n"
+nleap: .asciiz  "\nNam vua nhap khong phai la nam nhuan.\n"
+inputTIME1: .asciiz "\nNhap chuoi TIME_1:\n"
+inputTIME2: .asciiz "\n~~~~~~~~~~~~~~~~~~\nNhap chuoi TIME_2:\n"
+result: .asciiz "\nKet qua: "
+jan: .asciiz "January"
+feb: .asciiz "February"
+mar: .asciiz "March"
+apr: .asciiz "April"
+may: .asciiz "May"
+jun: .asciiz "June"
+jul: .asciiz "July"
+aug: .asciiz "August"
+sep: .asciiz "September"
+oct: .asciiz "October"
+nov: .asciiz "November"
+dec: .asciiz "December"
+.text 
+main:
+	la $a0, TIME
+	jal InputTime
+	add $v0, $0, 4
+	la $a0, menu
+	syscall
+	la $a0, option
+	syscall
+input_option:
+	add $v0, $0, 12
+	syscall
+	move $t0, $v0
+	sub $t0, $t0, 48
+option1:
+	bne $t0, 1, option2
+	add $v0, $0, 4
+	la $a0, result
+	syscall
+	la $a0, TIME
+	add $v0, $0, 4
+	syscall
+	j exit
+option2:
+	bne $t0, 2, option3
+	add $v0, $0, 4
+	la $a0, option2_
+	syscall
+	j input_option2
+	error_input_option2:
+		add $v0, $0, 4
+		la $a0, error_option2
+		syscall
+	input_option2:
+		add $v0, $0, 12
+		syscall
+		move $a1, $v0 #convert
+		blt $v0, 65, error_input_option2
+		bgt $v0, 67, error_input_option2
+	add $v0, $0, 4
+	la $a0, result
+	syscall
+	la $a0, TIME
+	jal Convert
+	move $a0, $v0
+	add $v0, $0, 4 
+	syscall
+	j exit
+option3:
+	bne $t0, 3, option4
+	add $v0, $0, 4
+	la $a0, result
+	syscall
+	la $a0, TIME
+	jal Weekday
+	move $a0, $v0
+	add $v0, $0, 4
+	syscall
+	j exit
+option4:
+	bne $t0, 4, option5
+	add $v0, $0, 4 
+	la $a0, result
+	syscall
+	la $a0, TIME
+	jal LeapYear
+	beq $v0, $0, notLeap
+	add $v0, $0, 4 
+	la $a0, leap
+	syscall
+	j exit
+	notLeap:
+		add $v0, $0, 4 
+		la $a0, nleap
+		syscall
+		j exit
+option5:
+	bne $t0, 5, option6
+	jal FUNC5
+	move $t0, $v0
+	add $v0, $0, 4 
+	la $a0, result
+	syscall
+	add $v0, $0, 1
+	move $a0, $t0
+	syscall
+	j exit
+option6:
+	bne $t0, 6, re_option 
+	add $v0, $0, 4 
+	la $a0, result
+	syscall
+	la $a0, TIME
+	jal FUNC6
+	move $a0, $v0
+	add $v0, $0, 1
+	syscall
+	add $v0, $0, 11
+	add $a0, $0,  32
+	syscall
+	move $a0, $v1
+	add $v0, $0, 1
+	syscall
+	j exit
+re_option:
+	add $v0, $0, 4 
+	la $a0, error_option
+	syscall
+	j input_option
+InputTime:
+	addi $sp, $sp, -8
+	sw $ra, ($sp)
+	sw $a0, 4($sp)
+	_day:
+		add $v0, $0, 4 
+		la $a0, input_day
+		syscall
+		add $a1, $0,  3
+		jal input
+		blt $v0, 1, re_inputTIME
+		bgt $v0, 31, re_inputTIME
+		sw $v0, day
+	_month:
+		add $v0, $0, 4 
+		la $a0, input_mon
+		syscall
+		add $a1, $0,  3
+		jal input
+		blt $v0, 1, re_inputTIME
+		bgt $v0, 12, re_inputTIME
+		sw $v0, month
+		beq $v0, 1, _year
+		beq $v0, 3, _year
+		beq $v0, 5, _year
+		beq $v0, 7, _year
+		beq $v0, 8, _year
+		beq $v0, 10, _year
+		beq $v0, 12, _year
+		lw $t0, day
+		lw $t1, month
+		bgt $t0, 30, re_inputTIME
+		bne $t1, 2, _year
+		bgt $t0, 29, re_inputTIME
+	_year:
+		add $v0, $0, 4 
+		la $a0, input_year
+		syscall
+		add $a1, $0,  5
+		jal input
+		blt $v0, 1900, re_inputTIME
+		bgt $v0, 9999, re_inputTIME
+		sw $v0, year
+		lw $a0, year
+		jal checkLeap
+		beq $v0,1, doneInput
+		lw $t0, day
+		lw $t1, month
+		bne $t1, 2, doneInput
+		bgt $t0, 28, re_inputTIME
+	doneInput:
+		lw $a0, day
+		lw $a1, month
+		lw $a2, year
+		lw $a3, 4($sp) ## la $a3, Time
+		jal Date
+		lw $ra, ($sp)
+		addi $sp, $sp, 8
+		jr $ra
+input:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	add $v0, $0, 8
+	la $a0, d
+	syscall 
+	check_digit:
+		lb $t1, ($a0)
+		addi, $a0, $a0, 1
+		beq $t1, 10, check_done1
+		beqz $t1, check_done
+		add $t0, $0, '0'
+		bltu $t1,$t0, re_input
+		add $t0, $0, '9'
+		bltu $t0,$t1, re_input
+		bnez $t1, check_digit
+	check_done1:
+		subi $a1, $a1, 1
+	check_done:
+		la $a0, d
+		jal convert_to_int
+		lw $ra, ($sp)
+		addi $sp, $sp, 4
+		jr $ra
+re_input:
+	add $v0, $0, 4
+	la $a0, error_input
+	syscall
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	j input
+re_inputTIME:
+	add $v0, $0, 4
+	la $a0, error_input
+	syscall
+	j _day
+convert_to_int:
+	addi $v0,$0,0
+	add $t0, $0, 0
+	load_char:	
+		lb $t1,($a0)
+		addi $t0, $t0, 1
+		addi $a0,$a0,1
+		blt $t0, $a1, sum
+		jr $ra
+	sum:
+		addi $t9, $0, 10
+		addi $t1,$t1, -48
+		mul $v0, $t9, $v0
+		add $v0, $v0, $t1
+		j load_char
+checkLeap:
+	add $t0, $0, 4
+	div $a0, $t0
+	mfhi $t0
+	bne $t0, $0, check_wrong
+	add $t0, $0, 100
+	div $a0, $t0
+	mfhi $t0
+	beq $t0, $0, check_right
+	add $v0, $0, 1
+	jr $ra
+	check_right:
+		add $t0, $0, 400
+		div $a0, $t0
+		mfhi $t0
+		bne $t0, $0, check_wrong
+		add $v0, $0, 1
+		jr $ra
+	check_wrong:
+		add $v0, $0, 0
+		jr $ra
+LeapYear:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	jal Year
+	move $a0, $v0
+	jal checkLeap
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
+Date:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	add $t9, $0, 10
+	div $a0, $t9 #day
+	mflo $t0
+	addi $t0, $t0, 48
+	sb $t0, ($a3)
+	mfhi $t0
+	addi $t0, $t0, 48
+	sb $t0, 1($a3)
+	div $a1, $t9 #month
+	mflo $t0
+	addi $t0, $t0, 48
+	sb $t0, 3($a3)
+	mfhi $t0
+	addi $t0, $t0, 48
+	sb $t0, 4($a3)
+	div $a2, $t9 #year
+	mfhi $t0
+	addi $t0, $t0, 48
+	sb $t0, 9($a3)
+	mflo $a2
+	div $a2, $t9
+	mfhi $t0
+	addi $t0, $t0, 48
+	sb $t0, 8($a3)
+	mflo $a2
+	div $a2, $t9
+	mfhi $t0
+	addi $t0, $t0, 48
+	sb $t0, 7($a3)
+	mflo $t0
+	addi $t0, $t0, 48
+	sb $t0, 6($a3)
+	move $v0, $a3
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
+Convert:
+	addi $sp, $sp, -16
+	sw $ra, 0($sp)
+	sw $a0, 4($sp)
+	sw $a1, 8($sp)
+	jal Day
+	move $s0, $v0
+	lw $a0, 4($sp)
+	jal Month
+	move $s1, $v0
+	lw $a0, 4($sp)
+	jal Year
+	move $s2, $v0
+	lw $a1, 8($sp)
+	beq $a1, 65, ConvertA
+	beq $a1, 66, ConvertB
+	beq $a1, 67, ConvertC
+	ConvertA:
+		move $a0, $s1
+		move $a1, $s0
+		move $a2, $s2
+		la $a3, TIME1
+		jal Date
+		move $v0, $a3
+		lw $ra, ($sp)
+		addi $sp, $sp, 16
+		jr $ra
+
+	ConvertB:
+		move $a0, $s1
+		jal get_month_name
+		la $a0, TIME_convert
+		move $a1, $v0
+		jal str_append
+		move $a0, $v0
+		add $t0, $0, 32
+		sb $t0, ($a0)
+		addi $a0, $a0, 1
+		move $a1, $s0
+		add $a2, $0, 2
+		jal int_append
+		move $a0, $v0
+		add $t0, $0, 44
+		sb $t0, ($a0)
+		addi $a0, $a0, 1
+		add $t0, $0, 32
+		sb $t0, ($a0)
+		addi $a0, $a0, 1
+		move $a1, $s2
+		add $a2, $0, 4
+		jal int_append
+		lw $ra, ($sp)
+		addi $sp, $sp, 16
+		la $v0, TIME_convert
+		jr $ra
+	ConvertC:
+		la $a0, TIME_convert
+		move $a1, $s0	
+		add $a2, $0, 2
+		jal int_append
+		move $a0, $v0
+		add $t0, $0, 32
+		sb $t0, ($a0)
+		addi $a0, $a0, 1
+		sw $a0, 12($sp)
+		move $a0, $s1
+		jal get_month_name
+		move $a1, $v0
+		lw $a0, 12($sp)
+		jal str_append
+		move $a0, $v0
+		add $t0, $0, 44
+		sb $t0, ($a0)
+		addi $a0, $a0, 1
+		add $t0, $0, 32		
+		sb $t0, ($a0)
+		addi $a0, $a0, 1
+		move $a1, $s2
+		add $a2, $0, 4
+		jal int_append
+		lw $ra, ($sp)
+		addi $sp, $sp, 16
+		la $v0, TIME_convert
+		jr $ra
+get_month_name:
+	m1:
+		bne $a0, 1, m2
+		la $v0, jan
+		jr $ra
+	m2:
+		bne $a0, 2, m3
+		la $v0, feb
+		jr $ra
+	m3:
+		bne $a0, 3, m4
+		la $v0, mar
+		jr $ra
+	m4:
+		bne $a0, 4, m5
+		la $v0, apr
+		jr $ra
+	m5:
+		bne $a0, 5, m6
+		la $v0, may
+		jr $ra
+	m6:
+		bne $a0, 6, m7	
+		la $v0, jun
+		jr $ra
+	m7:
+		bne $a0, 7, m8
+		la $v0, jul
+		jr $ra
+	m8:
+		bne $a0, 8, m9
+		la $v0, aug
+		jr $ra
+	m9:
+		bne $a0, 9, m10
+		la $v0, sep 
+		jr $ra
+	m10:
+		bne $a0, 10, m11
+		la $v0, oct
+		jr $ra
+	m11:
+		bne $a0, 11, m12
+		la $v0, nov
+		jr $ra
+	m12:	
+		la $v0, dec
+		jr $ra
+str_append:
+	move $v0, $a0
+	get_str:
+		lb $t0, ($a1)
+		addi $a1, $a1, 1
+		beqz $t0, add_done
+		sb $t0, ($v0)
+		addi $v0, $v0, 1
+		j get_str
+	add_done:
+		jr $ra
+int_append:
+	add $t9, $0, 10
+	add $t1, $0, 0
+	add $a0, $a0, $a2
+	move $v0, $a0
+	loop:
+	div $a1, $t9
+	mfhi $t0
+	mflo $a1
+	addi $t0, $t0, 48
+	subi $a0, $a0, 1
+	sb $t0, ($a0)
+	addi $t1, $t1, 1
+	blt $t1, $a2, loop
+	jr $ra
+Day:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	add $a1, $0, 3
+	jal convert_to_int
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
+Month:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	addi $a0, $a0, 3
+	add $a1, $0, 3
+	jal convert_to_int
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
+Year:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	addi $a0, $a0, 6
+	add $a1, $0, 5
+	jal convert_to_int
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
+Weekday:
+	addi $sp, $sp, -8
+	sw $ra, 0($sp)
+	sw $a0, 4($sp)
+	jal Day
+	move $s0, $v0
+	lw $a0, 4($sp)
+	jal Year
+	move $s2, $v0
+	lw $a0, 4($sp)
+	jal Month
+	move $s1, $v0
+	lw $a0, 4($sp)
+	jal LeapYear
+	bne $v0, $0, _mleap
+	la $t0, m
+	j getm
+	_mleap:
+		la $t0, mleap
+	getm:
+	add $t0, $t0, $s1
+	lb $s1, ($t0)
+	subi $s1, $s1, 48
+	add $t0, $0, 100
+	div $s2, $t0
+	mflo $s3 ##century
+	mfhi $s2 
+	add $t0, $0, 4
+	div $s2, $t0
+	mflo $t0
+	add $v0, $0, 0
+	add $v0, $v0, $s0
+	add $v0, $v0, $s1
+	add $v0, $v0, $s2
+	add $v0, $v0, $t0
+	add $t0, $0, 4
+	div $s3, $t0
+	mflo $t0
+	add $v0, $v0, $t0
+	sub $v0, $v0, $s3
+	sub $v0, $v0, $s3
+	add $t0, $0, 7
+	addi $v0, $v0, -1 ###edit
+	div $v0, $t0
+	mfhi $v0
+	mul $v0, $v0, 6
+	la $t0, wday
+	add $v0, $t0, $v0
+	lw $ra, 0($sp)
+	addi $sp, $sp, 8
+	jr $ra
+FUNC5:
+	addi $sp, $sp, -4
+	sw $ra, ($sp)
+	add $v0, $0, 4 
+	la $a0, inputTIME1
+	syscall
+	la $a0, TIME1
+	jal InputTime
+	add $v0, $0, 4 
+	la $a0, inputTIME2
+	syscall
+	la $a0, TIME2
+	jal InputTime
+	la $a0, TIME1
+	la $a1, TIME2
+	jal GetTime
+	lw $ra, ($sp)
+	addi $sp, $sp, 4
+	jr $ra
+GetTime:
+	addi $sp, $sp, -16
+	sw $ra, ($sp)
+	sw $a0, 4($sp)
+	sw $a1, 8($sp)
+	jal Year
+	move $s1, $v0
+	lw $a0, 8($sp)
+	jal Year
+	move $s2, $v0
+	blt $s2, $s1, exchange
+	j not_exchange
+	exchange:
+		move $t0, $s1
+		move $s1, $s2
+		move $s2, $t0
+		lw $a0, 4($sp)
+		lw $a1, 8($sp)
+		sw $a0, 8($sp)
+		sw $a1, 4($sp)
+	not_exchange:
+	sub $v0, $s2, $s1
+	sw $v0, 12($sp)
+	lw $a0, 4($sp)
+	jal Month
+	move $s1, $v0
+	lw $a0, 8($sp)
+	jal Month
+	move $s2, $v0
+	blt $s2, $s1, minus1
+	bne $s2, $s1, not_minus
+	bne $s2, 2, normal
+	lw $a0, 4($sp)
+	jal LeapYear
+	beq $v0, $0, normal
+	lw $a0, 8($sp)
+	jal LeapYear
+	bne $v0, $0, normal
+	lw $a0, 4($sp)
+	jal Day
+	bne $v0, 29, normal
+	lw $a0, 8($sp)
+	jal Day
+	bne $v0, 28, normal
+	j not_minus
+	normal:
+		lw $a0, 4($sp)
+		jal Day
+		move $s1, $v0
+		lw $a0, 8($sp)
+		jal Day
+		move $s2, $v0
+		blt $s2, $s1, minus1
+		j not_minus
+	minus1:
+		lw $v0, 12($sp)
+		subi $v0, $v0, 1
+		sw $v0, 12($sp)
+	not_minus:
+		lw $v0, 12($sp)
+		lw $ra, ($sp)
+		addi $sp, $sp, 16
+		jr $ra
+FUNC6:
+	addi $sp, $sp, -8
+	sw $ra, ($sp)
+	jal Year
+	move $s1, $v0
+	move $s2, $v0
+	findLeap1:
+		addi $s1, $s1, 1
+		move $a0, $s1
+		jal checkLeap
+		beq $v0, $0, findLeap1
+		sw $a0, 4($sp)
+	findLeap2:
+		subi $s2, $s2, 1
+		move $a0, $s2
+		jal checkLeap
+		beq $v0, $0, findLeap2
+		move $v0, $a0
+		lw $v1, 4($sp)
+		lw $ra, ($sp)
+		addi $sp, $sp, 8
+		jr $ra
+exit:
+	add $v0, $0, 10 # terminate program
+	syscall
